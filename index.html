@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10색상환 마스터: 교육용 통합 프로그램</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+        }
+        .paint-region {
+            transition: fill 0.25s ease, stroke 0.15s ease;
+        }
+        .paint-region:hover {
+            stroke: #ef4444 !important;
+            stroke-width: 4px !important;
+            cursor: pointer;
+            opacity: 0.9;
+        }
+        .swatch-item {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .swatch-item:hover {
+            transform: scale(1.2);
+        }
+        .custom-slider::-webkit-slider-thumb {
+            background: #4f46e5;
+            border: 2px solid #ffffff;
+            border-radius: 9999px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            box-shadow: 0 6px 10px -1px rgb(0 0 0 / 0.15);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col items-center justify-start p-4 md:p-8">
+
+<div id="toast-message" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-8 py-4 rounded-full font-bold text-lg text-white shadow-2xl transition-all duration-300 opacity-0 pointer-events-none scale-90 flex items-center gap-3"></div>
+
+<div id="modal-confirm" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl scale-95 transition-transform duration-300 border border-slate-100">
+        <h3 class="text-2xl font-black text-slate-900 flex items-center gap-3">🎨 도안 초기화</h3>
+        <p class="text-slate-600 mt-3 text-base leading-relaxed">색칠한 모든 영역을 깨끗하게 지우고 처음의 흰색 도안 상태로 되돌리시겠습니까?</p>
+        <div class="mt-8 flex gap-4 justify-end">
+            <button class="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition text-base" onclick="closeConfirmModal(false)">취소</button>
+            <button class="px-7 py-3 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition text-base" onclick="closeConfirmModal(true)">초기화</button>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-6xl w-full bg-white rounded-3xl border border-slate-150 p-6 md:p-10 shadow-2xl">
+    
+    <div id="setup-screen" class="block">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-3">🎨 10색상환 통합 학습 프로그램</h1>
+            <p class="text-slate-500 text-sm md:text-lg">아래의 20개 물감 중 <strong class="text-indigo-600 font-extrabold">기본 10색상환</strong>에 해당하는 10개 색을 정확히 고르면 게임이 시작됩니다!</p>
+            <div class="mt-4 text-xs md:text-sm text-slate-500 bg-slate-100 py-2 px-6 rounded-full inline-block font-bold">
+                💡 힌트: 빨강, 주황, 노랑, 연두, 초록, 청록, 파랑, 남색, 보라, 자주
+            </div>
+        </div>
+
+        <!-- 20개 색상을 시각적으로 시원하게 인지할 수 있는 확대 그리드 -->
+        <div id="setup-grid" class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 gap-3.5 p-4 md:p-6 bg-slate-50 rounded-2xl border border-slate-200"></div>
+
+        <div class="mt-8 flex flex-col items-center justify-center gap-4">
+            <div id="count-info" class="text-lg md:text-2xl font-black text-slate-700">선택된 색상: 0 / 10</div>
+            <button id="start-btn" class="w-full sm:w-80 py-4.5 px-8 bg-slate-200 text-slate-400 font-extrabold rounded-2xl cursor-not-allowed transition-all duration-300 text-center text-lg shadow-sm" disabled onclick="startGame()">
+                게임 시작하기 🚀
+            </button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div class="flex flex-wrap md:flex-nowrap gap-2 border-b border-slate-200 pb-4 mb-8">
+            <button class="tab-btn flex-1 py-3.5 px-2 font-black text-sm md:text-base text-slate-500 border-b-4 border-transparent text-center transition-all duration-150 active" onclick="switchTab(1)">유형 1: 결과 맞추기</button>
+            <button class="tab-btn flex-1 py-3.5 px-2 font-black text-sm md:text-base text-slate-500 border-b-4 border-transparent text-center transition-all duration-150" onclick="switchTab(2)">유형 2: 재료 맞추기</button>
+            <button class="tab-btn flex-1 py-3.5 px-2 font-black text-sm md:text-base text-slate-500 border-b-4 border-transparent text-center transition-all duration-150" onclick="switchTab(3)">유형 3: 자유 혼합기</button>
+            <button class="tab-btn flex-1 py-3.5 px-2 font-black text-sm md:text-base text-slate-500 border-b-4 border-transparent text-center transition-all duration-150" onclick="switchTab(4)">유형 4: 색칠공부</button>
+        </div>
+
+        <div id="type1" class="game-section block">
+            <h2 class="text-2xl md:text-3xl font-black text-slate-900 text-center mb-2">무슨 색이 만들어질까요?</h2>
+            <p class="text-slate-500 text-center text-sm md:text-base mb-6">제시된 물감들을 같은 비율로 섞었을 때 만들어질 올바른 색상을 보기에서 골라보세요.</p>
+            <div class="flex items-center justify-center gap-6 py-8 px-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 mb-8 overflow-x-auto min-h-[160px]">
+                <div id="t1-quiz-colors" class="flex items-center gap-6 flex-nowrap"></div>
+            </div>
+            <div id="t1-options" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+        </div>
+
+        <div id="type2" class="game-section hidden">
+            <h2 class="text-2xl md:text-3xl font-black text-slate-900 text-center mb-2">어떤 색을 섞었을까요?</h2>
+            <p class="text-slate-500 text-center text-sm md:text-base mb-6">왼쪽의 물감과 비밀의 색(?)을 1:1로 섞어 오른쪽의 혼합 결과물이 완성되었습니다. 비밀의 색을 찾으세요.</p>
+            <div class="flex flex-wrap items-center justify-center gap-4 md:gap-6 py-8 px-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 mb-8">
+                <div id="t2-base" class="w-32 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-center flex flex-col items-center"></div>
+                <div class="text-2xl font-black text-slate-400">+</div>
+                <div class="w-32 bg-white border-2 border-dashed border-slate-300 p-4 rounded-2xl shadow-sm text-center flex flex-col items-center">
+                    <div class="w-14 h-14 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center font-black text-slate-500 text-2xl mb-2">?</div>
+                    <div class="text-xs font-bold text-slate-400">비밀의 색</div>
+                </div>
+                <div class="text-2xl font-black text-slate-400">=</div>
+                <div id="t2-result" class="w-32 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm text-center flex flex-col items-center"></div>
+            </div>
+            <div id="t2-options" class="grid grid-cols-2 md:grid-cols-5 gap-4"></div>
+        </div>
+
+        <div id="type3" class="game-section hidden">
+            <h2 class="text-2xl md:text-3xl font-black text-slate-900 text-center mb-2">내 맘대로 색상 혼합기</h2>
+            <p class="text-slate-500 text-center text-sm md:text-base mb-6">물감을 누르면 조절 바가 나타납니다. 양(크기)을 다르게 혼합하여 결과를 시각적으로 느껴보세요.</p>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div class="md:col-span-5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <h3 class="font-extrabold text-slate-800 text-base border-b border-slate-200 pb-3 mb-3 flex items-center gap-2">🎨 10색상환 물감 선택</h3>
+                    <div id="t3-palette" class="grid grid-cols-2 gap-3"></div>
+                </div>
+                <div class="md:col-span-7 flex flex-col gap-5">
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex-1">
+                        <h3 class="font-extrabold text-slate-800 text-base border-b border-slate-200 pb-3 mb-3">🧪 물감 비율 및 시각화</h3>
+                        <div id="t3-sliders" class="space-y-3 min-h-[160px] flex flex-col justify-center">
+                            <p class="text-slate-400 text-center text-sm">왼쪽 팔레트에서 물감을 여러 개 골라보세요!</p>
+                        </div>
+                    </div>
+                    <div class="bg-indigo-50/50 border border-indigo-100 p-6 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <h4 class="font-extrabold text-indigo-900 mb-3 text-sm">실시간 합성 결과</h4>
+                        <div id="t3-result-circle" class="w-24 h-24 rounded-full border border-slate-300 shadow-lg bg-white transition-all duration-300"></div>
+                        <p id="t3-result-name" class="font-black text-indigo-950 mt-3 text-base">선택된 색 없음</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="type4" class="game-section hidden">
+            <h2 class="text-2xl md:text-3xl font-black text-slate-900 text-center mb-2">나만의 10색상환 컬러링북</h2>
+            <p class="text-slate-500 text-center text-sm md:text-base mb-6">직접 조색한 커스텀 물감이나 기본 10색을 활용해 다양한 도안에 나만의 예술작품을 완성하세요.</p>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+                
+                <!-- 도안 영역 -->
+                <div class="md:col-span-6 flex flex-col items-center">
+                    <div class="w-full flex items-center gap-3 mb-4">
+                        <label for="template-selector" class="text-sm font-extrabold text-slate-600 whitespace-nowrap">🖼️ 도안 변경 :</label>
+                        <select id="template-selector" onchange="changeTemplate(this.value)" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="1">도안 1: 기하학 만다라</option>
+                            <option value="2">도안 2: 대칭의 나비</option>
+                            <option value="3">도안 3: 기하학 산과 연못</option>
+                        </select>
+                    </div>
+                    
+                    <div class="w-full bg-white p-2.5 rounded-2xl border border-slate-200 shadow-lg">
+                        <svg id="painting-canvas" viewBox="0 0 400 400" class="w-full h-auto bg-white rounded-xl"></svg>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 w-full mt-4">
+                        <button onclick="triggerClearCanvas()" class="py-3 px-4 bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white font-extrabold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
+                            🗑️ 전부 지우기
+                        </button>
+                        <button onclick="downloadHighRes()" class="py-3 px-4 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-white font-extrabold rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
+                            🖼️ 고화질 저장 (PNG)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="md:col-span-6 bg-slate-50 rounded-2xl border border-slate-200 p-5 flex flex-col gap-4">
+                    
+                    <div>
+                        <h4 class="text-xs md:text-sm font-extrabold text-slate-500 mb-2">🖌️ 선택한 물감 붓</h4>
+                        <div class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3.5 shadow-inner">
+                            <div id="active-brush-circle" class="w-10 h-10 rounded-full border border-slate-300 shadow-sm transition-all duration-200"></div>
+                            <div>
+                                <div id="active-brush-name" class="font-extrabold text-sm text-slate-800">색을 먼저 선택하세요</div>
+                                <div id="active-brush-hex" class="text-xs text-slate-400 font-mono">#FFFFFF</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-xs md:text-sm font-extrabold text-slate-500 mb-2">🎨 기본 10색 물감</h4>
+                        <div id="t4-palette" class="grid grid-cols-5 gap-2.5"></div>
+                    </div>
+
+                    <div class="border-t border-slate-200 pt-4">
+                        <h4 class="text-xs md:text-sm font-extrabold text-slate-500 mb-2.5">🧪 물감 조색 연구소</h4>
+                        <div class="grid grid-cols-11 items-center gap-1.5 mb-3">
+                            <select id="mix-color-1" onchange="updateType4Mix()" class="col-span-5 bg-white border border-slate-200 rounded-lg p-2.5 text-xs md:text-sm font-bold text-slate-700 outline-none"></select>
+                            <span class="col-span-1 text-center font-bold text-slate-400 text-base">+</span>
+                            <select id="mix-color-2" onchange="updateType4Mix()" class="col-span-5 bg-white border border-slate-200 rounded-lg p-2.5 text-xs md:text-sm font-bold text-slate-700 outline-none"></select>
+                        </div>
+
+                        <div class="space-y-1.5 mb-4">
+                            <div class="flex justify-between text-xs font-black text-slate-500">
+                                <span id="ratio-label-1">색상1: 50%</span>
+                                <span id="ratio-label-2">색상2: 50%</span>
+                            </div>
+                            <input type="range" id="t4-mix-slider" min="10" max="90" value="50" step="10" oninput="updateType4Mix()" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-slider outline-none">
+                        </div>
+
+                        <div class="bg-white border border-slate-200 p-3 rounded-xl flex items-center gap-3 shadow-sm">
+                            <div id="t4-mix-preview-circle" class="w-12 h-12 rounded-full border border-slate-300 shadow-sm flex-shrink-0"></div>
+                            <div class="flex-grow flex flex-col gap-1.5">
+                                <div id="t4-mix-preview-name" class="text-xs font-extrabold text-slate-700">물감 섞는 중...</div>
+                                <button onclick="applyMixedColorToBrush()" class="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold rounded-lg text-xs transition-all">
+                                    🖌️ 이 색상으로 붓 충전
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<canvas id="hidden-canvas" class="hidden"></canvas>
+
+<script>
+    const poolColors = [
+        { name: "빨강", hex: "#FF0000", isAns: true }, { name: "주황", hex: "#FF7F00", isAns: true },
+        { name: "노랑", hex: "#FFFF00", isAns: true }, { name: "연두", hex: "#8BFF00", isAns: true },
+        { name: "초록", hex: "#00FF00", isAns: true }, { name: "청록", hex: "#00FFFF", isAns: true },
+        { name: "파랑", hex: "#0000FF", isAns: true }, { name: "남색", hex: "#00008B", isAns: true },
+        { name: "보라", hex: "#8B00FF", isAns: true }, { name: "자주", hex: "#FF007F", isAns: true },
+        { name: "분홍", hex: "#FFC0CB", isAns: false }, { name: "갈색", hex: "#A52A2A", isAns: false },
+        { name: "하늘", hex: "#87CEEB", isAns: false }, { name: "황토", hex: "#C68E17", isAns: false },
+        { name: "연보라", hex: "#E6E6FA", isAns: false }, { name: "카키", hex: "#F0E68C", isAns: false },
+        { name: "회색", hex: "#808080", isAns: false }, { name: "금색", hex: "#FFD700", isAns: false },
+        { name: "진록", hex: "#006400", isAns: false }, { name: "다홍", hex: "#FF4500", isAns: false }
+    ];
+
+    const templates = {
+        "1": `
+            <rect width="400" height="400" fill="#fcfcf9" stroke="#cbd5e0" stroke-width="4" rx="12"/>
+            <circle cx="200" cy="200" r="185" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <circle cx="200" cy="200" r="170" fill="none" stroke="#718096" stroke-width="1.5" stroke-dasharray="6,4"/>
+            <path d="M 200,30 C 160,100 240,100 200,30 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 200,370 C 160,300 240,300 200,370 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 30,200 C 100,160 100,240 30,200 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 370,200 C 300,160 300,240 370,200 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 80,80 C 130,130 110,160 80,80 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 320,320 C 270,270 290,240 320,320 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 320,80 C 270,130 290,160 320,80 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 80,320 C 130,270 110,240 80,320 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <circle cx="200" cy="200" r="115" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <circle cx="200" cy="200" r="85" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <polygon points="200,130 225,165 265,165 235,190 250,230 200,210 150,230 165,190 135,165 175,165" fill="#ffffff" stroke="#2d3748" stroke-width="1.8" class="paint-region"/>
+            <circle cx="200" cy="200" r="32" fill="#ffffff" stroke="#2d3748" stroke-width="2.5" class="paint-region"/>
+        `,
+        "2": `
+            <rect width="400" height="400" fill="#fcfcf9" stroke="#cbd5e0" stroke-width="4" rx="12"/>
+            <circle cx="70" cy="70" r="40" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <circle cx="330" cy="70" r="40" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <path d="M 200,180 Q 120,60 70,120 Q 70,210 200,210 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 200,180 Q 280,60 330,120 Q 330,210 200,210 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 200,210 Q 110,210 100,290 Q 150,330 200,240 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <path d="M 200,210 Q 290,210 300,290 Q 250,330 200,240 Z" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <ellipse cx="130" cy="140" rx="20" ry="15" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <ellipse cx="270" cy="140" rx="20" ry="15" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <circle cx="150" cy="260" r="15" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <circle cx="250" cy="260" r="15" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <ellipse cx="200" cy="200" rx="12" ry="70" fill="#ffffff" stroke="#2d3748" stroke-width="2.5" class="paint-region"/>
+            <circle cx="200" cy="115" r="15" fill="#ffffff" stroke="#2d3748" stroke-width="2.5" class="paint-region"/>
+            <path d="M 195,100 Q 170,60 150,70" fill="none" stroke="#2d3748" stroke-width="2"/>
+            <path d="M 205,100 Q 230,60 250,70" fill="none" stroke="#2d3748" stroke-width="2"/>
+        `,
+        "3": `
+            <rect width="400" height="400" fill="#fcfcf9" stroke="#cbd5e0" stroke-width="4" rx="12"/>
+            <rect x="20" y="20" width="360" height="200" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <circle cx="200" cy="110" r="50" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <polygon points="20,20 200,20 200,110 20,110" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <polygon points="380,20 200,20 200,110 380,110" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <polygon points="20,280 150,130 260,280" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <polygon points="140,280 270,100 380,280" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <polygon points="100,320 200,190 300,320" fill="#ffffff" stroke="#2d3748" stroke-width="2" class="paint-region"/>
+            <rect x="20" y="320" width="180" height="60" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <rect x="200" y="320" width="180" height="60" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+            <polygon points="20,280 380,280 380,320 20,320" fill="#ffffff" stroke="#2d3748" stroke-width="1.5" class="paint-region"/>
+        `
+    };
+
+    let selected10Colors = [];
+    let t3SelectedAmounts = {};
+    let activeBrushColor = "#FFFFFF";
+
+    function showToast(message, isSuccess = true) {
+        const toast = document.getElementById('toast-message');
+        toast.innerText = message;
+        toast.className = `fixed top-6 left-1/2 -translate-x-1/2 z-50 px-8 py-4 rounded-full font-bold text-lg text-white shadow-2xl transition-all duration-300 flex items-center gap-3 ${
+            isSuccess ? 'bg-emerald-500 shadow-emerald-500/25' : 'bg-rose-500 shadow-rose-500/25'
+        }`;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0) scale(1)';
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(-50%) translateY(-10px) scale(0.9)';
+        }, 2200);
+    }
+
+    let confirmCallback = null;
+    function triggerClearCanvas() {
+        document.getElementById('modal-confirm').classList.remove('hidden');
+        confirmCallback = () => {
+            const regions = document.querySelectorAll('.paint-region');
+            regions.forEach(region => region.setAttribute('fill', '#ffffff'));
+            showToast("깨끗한 흰색 도안으로 초기화되었습니다.", true);
+        };
+    }
+
+    function closeConfirmModal(agree) {
+        document.getElementById('modal-confirm').classList.add('hidden');
+        if (agree && confirmCallback) confirmCallback();
+        confirmCallback = null;
+    }
+
+    function initSetup() {
+        const grid = document.getElementById('setup-grid');
+        grid.innerHTML = '';
+        const shuffled = [...poolColors].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(color => {
+            const card = document.createElement('div');
+            // 패딩과 크기를 대폭 확대하여 사용자가 클릭하기 쾌적하도록 세팅
+            card.className = 'border-2 border-slate-200 p-2.5 rounded-2xl cursor-pointer text-center select-none shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center bg-white';
+            card.innerHTML = `
+                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-100 shadow-inner mb-2" style="background-color: ${color.hex}"></div>
+                <div class="text-xs sm:text-sm font-extrabold text-slate-700 leading-tight">${color.name}</div>
+            `;
+            card.onclick = () => toggleSelectColor(card, color);
+            grid.appendChild(card);
+        });
+
+        changeTemplate("1");
+    }
+
+    function toggleSelectColor(card, color) {
+        const index = selected10Colors.findIndex(c => c.name === color.name);
+        
+        if (index > -1) {
+            selected10Colors.splice(index, 1);
+            card.classList.remove('border-indigo-600', 'bg-indigo-50/70', 'ring-4', 'ring-indigo-600/20');
+            card.classList.add('border-slate-200', 'bg-white');
+        } else {
+            if (selected10Colors.length >= 10) {
+                showToast("10색상환은 최대 10개만 선택 가능합니다.", false);
+                return;
+            }
+            selected10Colors.push(color);
+            card.classList.remove('border-slate-200', 'bg-white');
+            card.classList.add('border-indigo-600', 'bg-indigo-50/70', 'ring-4', 'ring-indigo-600/20');
+        }
+
+        document.getElementById('count-info').innerText = `선택된 색상: ${selected10Colors.length} / 10`;
+
+        const correctCount = selected10Colors.filter(c => c.isAns).length;
+        const startBtn = document.getElementById('start-btn');
+        if (selected10Colors.length === 10 && correctCount === 10) {
+            startBtn.disabled = false;
+            startBtn.className = 'w-full sm:w-80 py-4 px-8 bg-indigo-600 text-white font-extrabold rounded-2xl cursor-pointer transition-all duration-300 text-center text-lg shadow-lg hover:bg-indigo-700 active:bg-indigo-800';
+        } else {
+            startBtn.disabled = true;
+            startBtn.className = 'w-full sm:w-80 py-4 px-8 bg-slate-200 text-slate-400 font-extrabold rounded-2xl cursor-not-allowed transition-all duration-300 text-center text-lg shadow-sm';
+        }
+    }
+
+    function startGame() {
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        setupType1Game();
+    }
+
+    function switchTab(typeNum) {
+        document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+            if (idx === typeNum - 1) {
+                btn.className = "tab-btn flex-1 py-3.5 px-2 font-black text-sm md:text-lg text-indigo-600 border-b-4 border-indigo-600 text-center transition-all duration-150";
+            } else {
+                btn.className = "tab-btn flex-1 py-3.5 px-2 font-black text-sm md:text-lg text-slate-500 border-b-4 border-transparent text-center transition-all duration-150 hover:text-slate-700";
+            }
+        });
+
+        document.querySelectorAll('.game-section').forEach((sec, idx) => {
+            sec.classList.toggle('hidden', idx !== typeNum - 1);
+        });
+
+        if (typeNum === 1) setupType1Game();
+        if (typeNum === 2) setupType2Game();
+        if (typeNum === 3) setupType3Game();
+        if (typeNum === 4) setupType4Game();
+    }
+
+    function mixHexColors(colorArray, weights = null) {
+        let r = 0, g = 0, b = 0, totalWeight = 0;
+        colorArray.forEach((color, idx) => {
+            const w = weights ? weights[idx] : 1;
+            const hex = color.hex.replace('#', '');
+            r += parseInt(hex.substring(0, 2), 16) * w;
+            g += parseInt(hex.substring(2, 4), 16) * w;
+            b += parseInt(hex.substring(4, 6), 16) * w;
+            totalWeight += w;
+        });
+        r = Math.round(r / totalWeight).toString(16).padStart(2, '0');
+        g = Math.round(g / totalWeight).toString(16).padStart(2, '0');
+        b = Math.round(b / totalWeight).toString(16).padStart(2, '0');
+        return `#${r}${g}${b}`;
+    }
+
+    function getClosestColorName(hex) {
+        let minDest = Infinity;
+        let closest = "알 수 없는 아름다운 색";
+        const r1 = parseInt(hex.substring(1, 3), 16);
+        const g1 = parseInt(hex.substring(3, 5), 16);
+        const b1 = parseInt(hex.substring(5, 7), 16);
+
+        poolColors.forEach(c => {
+            const r2 = parseInt(c.hex.substring(1, 3), 16);
+            const g2 = parseInt(c.hex.substring(3, 5), 16);
+            const b2 = parseInt(c.hex.substring(5, 7), 16);
+            const dest = Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+            if (dest < minDest) {
+                minDest = dest;
+                closest = c.name;
+            }
+        });
+        return closest;
+    }
+
+    function setupType1Game() {
+        const quizContainer = document.getElementById('t1-quiz-colors');
+        const optionsContainer = document.getElementById('t1-options');
+        quizContainer.innerHTML = '';
+        optionsContainer.innerHTML = '';
+
+        const count = Math.floor(Math.random() * 2) + 2;
+        const shuffled = [...selected10Colors].sort(() => Math.random() - 0.5);
+        const quizColors = shuffled.slice(0, count);
+
+        quizColors.forEach((color, i) => {
+            quizContainer.innerHTML += `
+                <div class="bg-white border border-slate-200 p-3 rounded-2xl shadow-sm flex flex-col items-center w-28">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-150 mb-1.5 shadow-inner" style="background-color: ${color.hex}"></div>
+                    <div class="text-xs sm:text-sm font-black text-slate-700">${color.name}</div>
+                </div>
+                ${i < quizColors.length - 1 ? '<b class="text-2xl font-black text-slate-400 select-none">+</b>' : ''}
+            `;
+        });
+
+        const mixedHex = mixHexColors(quizColors);
+        const correctName = getClosestColorName(mixedHex);
+
+        let options = [{ name: correctName, hex: mixedHex }];
+        while (options.length < 5) {
+            let randomColor = poolColors[Math.floor(Math.random() * poolColors.length)];
+            if (!options.some(o => o.name === randomColor.name)) {
+                options.push({ name: randomColor.name, hex: randomColor.hex });
+            }
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            // 패딩과 내부 프리뷰 서클 및 텍스트 폰트 사이즈 대폭 증가
+            btn.className = 'bg-white hover:bg-slate-50 border-2 border-slate-200 active:border-slate-300 py-4.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-3 transition shadow-sm';
+            btn.innerHTML = `
+                <div class="w-10 h-10 rounded-full border border-slate-100 shadow-sm" style="background:${opt.hex};"></div>
+                <div class="text-xs sm:text-sm font-black text-slate-800">${opt.name}</div>
+            `;
+            btn.onclick = () => {
+                if (opt.name === correctName) {
+                    showToast("정답입니다! 색채 감각이 탁월해요 🎉", true);
+                    setTimeout(setupType1Game, 1000);
+                } else {
+                    showToast("다른 색 조합을 다시 고려해 볼까요? 🤔", false);
+                }
+            };
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function setupType2Game() {
+        const shuffled = [...selected10Colors].sort(() => Math.random() - 0.5);
+        const baseColor = shuffled[0];
+        const hiddenColor = shuffled[1];
+
+        const mixedHex = mixHexColors([baseColor, hiddenColor]);
+        const resultName = getClosestColorName(mixedHex);
+
+        document.getElementById('t2-base').innerHTML = `
+            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-150 mb-2 shadow-sm" style="background:${baseColor.hex}"></div>
+            <div class="text-xs sm:text-sm font-black text-slate-700">${baseColor.name}</div>
+        `;
+        document.getElementById('t2-result').innerHTML = `
+            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-150 mb-2 shadow-sm" style="background:${mixedHex}"></div>
+            <div class="text-xs sm:text-sm font-black text-slate-700">${resultName}</div>
+        `;
+
+        const optionsContainer = document.getElementById('t2-options');
+        optionsContainer.innerHTML = '';
+
+        let options = [hiddenColor];
+        while (options.length < 5) {
+            let randomColor = selected10Colors[Math.floor(Math.random() * selected10Colors.length)];
+            if (!options.some(o => o.name === randomColor.name)) {
+                options.push(randomColor);
+            }
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            // 패딩 및 자식 폰트 크기 업스케일링
+            btn.className = 'bg-white hover:bg-slate-50 border-2 border-slate-200 active:border-slate-300 py-4.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-3 transition shadow-sm';
+            btn.innerHTML = `
+                <div class="w-10 h-10 rounded-full border border-slate-100 shadow-sm" style="background:${opt.hex}"></div>
+                <div class="text-xs sm:text-sm font-black text-slate-800">${opt.name}</div>
+            `;
+            btn.onclick = () => {
+                if (opt.name === hiddenColor.name) {
+                    showToast("훌륭합니다! 숨은 색상을 찾아냈습니다 👏", true);
+                    setTimeout(setupType2Game, 1000);
+                } else {
+                    showToast("아쉽네요, 다시 한번 섞을 성분을 선택해 보세요!", false);
+                }
+            };
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function setupType3Game() {
+        const palette = document.getElementById('t3-palette');
+        palette.innerHTML = '';
+        t3SelectedAmounts = {};
+        document.getElementById('t3-sliders').innerHTML = '<p class="text-slate-400 text-center text-sm">왼쪽 팔레트에서 물감을 여러 개 골라보세요!</p>';
+        updateType3Result();
+
+        selected10Colors.forEach(color => {
+            const card = document.createElement('div');
+            // 더 큰 물감 칩 사이즈 제공
+            card.className = 'bg-white border-2 border-slate-200 p-3.5 rounded-2xl cursor-pointer text-center select-none hover:-translate-y-1 hover:shadow-md transition flex items-center justify-start gap-3 w-full';
+            card.innerHTML = `
+                <div class="w-9 h-9 rounded-full border border-slate-150 flex-shrink-0" style="background:${color.hex}"></div>
+                <div class="text-xs sm:text-sm font-black text-slate-700">${color.name}</div>
+            `;
+            card.onclick = () => toggleType3Selection(card, color);
+            palette.appendChild(card);
+        });
+    }
+
+    function toggleType3Selection(card, color) {
+        if (t3SelectedAmounts[color.name]) {
+            delete t3SelectedAmounts[color.name];
+            card.className = card.className.replace(' border-indigo-500 bg-indigo-50/50', ' border-slate-200 bg-white');
+        } else {
+            t3SelectedAmounts[color.name] = { color: color, amount: 5 };
+            card.className = card.className.replace(' border-slate-200 bg-white', ' border-indigo-500 bg-indigo-50/50');
+        }
+        renderSliders();
+    }
+
+    function renderSliders() {
+        const container = document.getElementById('t3-sliders');
+        container.innerHTML = '';
+
+        const keys = Object.keys(t3SelectedAmounts);
+        if (keys.length === 0) {
+            container.innerHTML = '<p class="text-slate-400 text-center text-sm">왼쪽 팔레트에서 물감을 여러 개 골라보세요!</p>';
+            updateType3Result();
+            return;
+        }
+
+        keys.forEach(key => {
+            const item = t3SelectedAmounts[key];
+            const div = document.createElement('div');
+            div.className = 'bg-white border border-slate-200 p-3.5 rounded-2xl flex items-center justify-between gap-4 shadow-sm';
+
+            // 최소 12px에서 최대 52px까지의 대형 반응형 물감 볼륨 미리보기 구현
+            const circleSize = 12 + (item.amount * 4);
+
+            div.innerHTML = `
+                <div class="w-16 text-xs sm:text-sm font-black text-slate-700 text-left">${item.color.name}</div>
+                <input type="range" min="1" max="10" value="${item.amount}" oninput="updateAmount('${key}', this.value)" class="flex-grow h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-slider outline-none">
+                <div class="w-16 flex justify-center items-center h-16 bg-slate-50 border border-slate-100 rounded-xl">
+                    <div class="size-preview rounded-full shadow-inner" style="background-color:${item.color.hex}; width:${circleSize}px; height:${circleSize}px;"></div>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+        updateType3Result();
+    }
+
+    function updateAmount(name, val) {
+        t3SelectedAmounts[name].amount = parseInt(val);
+        renderSliders();
+    }
+
+    function updateType3Result() {
+        const resultCircle = document.getElementById('t3-result-circle');
+        const resultName = document.getElementById('t3-result-name');
+        const items = Object.values(t3SelectedAmounts);
+
+        if (items.length === 0) {
+            resultCircle.style.backgroundColor = '#ffffff';
+            resultName.innerText = "선택된 색 없음";
+            return;
+        }
+
+        const colors = items.map(i => i.color);
+        const weights = items.map(i => i.amount);
+
+        const finalHex = mixHexColors(colors, weights);
+        resultCircle.style.backgroundColor = finalHex;
+        resultName.innerText = `${getClosestColorName(finalHex)} (${finalHex.toUpperCase()})`;
+    }
+
+    function changeTemplate(val) {
+        const canvas = document.getElementById('painting-canvas');
+        canvas.innerHTML = templates[val];
+        bindPaintingEvents();
+    }
+
+    function setupType4Game() {
+        const palette = document.getElementById('t4-palette');
+        palette.innerHTML = '';
+
+        selected10Colors.forEach(color => {
+            const swatch = document.createElement('div');
+            // 컬러칩 사이즈 및 반응성 확대
+            swatch.className = 'swatch-item w-full aspect-square rounded-full border-4 border-white shadow-lg cursor-pointer transition';
+            swatch.style.backgroundColor = color.hex;
+            swatch.title = color.name;
+            swatch.onclick = () => {
+                document.querySelectorAll('.swatch-item').forEach(s => s.classList.remove('ring-4', 'ring-indigo-600'));
+                swatch.classList.add('ring-4', 'ring-indigo-600');
+                setBrushColor(color.hex, color.name);
+            };
+            palette.appendChild(swatch);
+        });
+
+        const d1 = document.getElementById('mix-color-1');
+        const d2 = document.getElementById('mix-color-2');
+        d1.innerHTML = '';
+        d2.innerHTML = '';
+
+        selected10Colors.forEach((color, idx) => {
+            const opt1 = document.createElement('option');
+            opt1.value = color.hex;
+            opt1.innerText = color.name;
+            if (idx === 0) opt1.selected = true;
+            d1.appendChild(opt1);
+
+            const opt2 = document.createElement('option');
+            opt2.value = color.hex;
+            opt2.innerText = color.name;
+            if (idx === 2) opt2.selected = true;
+            d2.appendChild(opt2);
+        });
+
+        if (selected10Colors.length > 0) {
+            const firstSwatch = palette.children[0];
+            firstSwatch.classList.add('ring-4', 'ring-indigo-600');
+            setBrushColor(selected10Colors[0].hex, selected10Colors[0].name);
+        }
+
+        bindPaintingEvents();
+        updateType4Mix();
+    }
+
+    function setBrushColor(hex, name) {
+        activeBrushColor = hex;
+        document.getElementById('active-brush-circle').style.backgroundColor = hex;
+        document.getElementById('active-brush-name').innerText = name;
+        document.getElementById('active-brush-hex').innerText = hex.toUpperCase();
+    }
+
+    function bindPaintingEvents() {
+        const regions = document.querySelectorAll('.paint-region');
+        regions.forEach(region => {
+            region.onclick = function () {
+                this.setAttribute('fill', activeBrushColor);
+            };
+        });
+    }
+
+    function updateType4Mix() {
+        const d1 = document.getElementById('mix-color-1');
+        const d2 = document.getElementById('mix-color-2');
+        const sliderVal = parseInt(document.getElementById('t4-mix-slider').value);
+
+        const c1Hex = d1.value;
+        const c2Hex = d2.value;
+        const c1Name = d1.options[d1.selectedIndex].text;
+        const c2Name = d2.options[d2.selectedIndex].text;
+
+        document.getElementById('ratio-label-1').innerText = `${c1Name}: ${100 - sliderVal}%`;
+        document.getElementById('ratio-label-2').innerText = `${c2Name}: ${sliderVal}%`;
+
+        const mixedHex = mixHexColors([{ hex: c1Hex }, { hex: c2Hex }], [100 - sliderVal, sliderVal]);
+        const mixedName = getClosestColorName(mixedHex);
+
+        document.getElementById('t4-mix-preview-circle').style.backgroundColor = mixedHex;
+        document.getElementById('t4-mix-preview-name').innerText = `${mixedName} (예상)`;
+    }
+
+    function applyMixedColorToBrush() {
+        const d1 = document.getElementById('mix-color-1');
+        const d2 = document.getElementById('mix-color-2');
+        const sliderVal = parseInt(document.getElementById('t4-mix-slider').value);
+
+        const c1Hex = d1.value;
+        const c2Hex = d2.value;
+
+        const mixedHex = mixHexColors([{ hex: c1Hex }, { hex: c2Hex }], [100 - sliderVal, sliderVal]);
+        const mixedName = getClosestColorName(mixedHex);
+
+        document.querySelectorAll('.swatch-item').forEach(s => s.classList.remove('ring-4', 'ring-indigo-600'));
+        setBrushColor(mixedHex, `${mixedName} (조합색)`);
+        showToast(`조색한 '${mixedName}' 물감을 붓에 충전했습니다!`, true);
+    }
+
+    function downloadHighRes() {
+        const svg = document.getElementById('painting-canvas');
+        const canvas = document.getElementById('hidden-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const size = 2400;
+        canvas.width = size;
+        canvas.height = size;
+
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        const img = new Image();
+        img.onload = function () {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, size, size);
+            ctx.drawImage(img, 0, 0, size, size);
+
+            const pngUrl = canvas.toDataURL("image/png");
+            const downloadLink = document.createElement("a");
+            downloadLink.href = pngUrl;
+            downloadLink.download = `coloring_masterpiece_${new Date().getTime()}.png`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            URL.revokeObjectURL(url);
+            showToast("고화질(PNG) 이미지 다운로드가 성공했습니다! 🖼️", true);
+        };
+        img.src = url;
+    }
+
+    window.onload = initSetup;
+</script>
+</body>
+</html>
