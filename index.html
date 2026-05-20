@@ -374,7 +374,28 @@
         <path d="M 280,150 Q 300,130 320,150 T 360,150" fill="none" stroke="#2d3748" stroke-width="2"/>
     `
 };
-    let selected10Colors = [];
+const mixRules = {
+    // 퀴즈에 나올만한 조합과 정답을 직접 정의합니다.
+    // '색이름1,색이름2' (가나다순 정렬) : '결과색이름'
+
+    // [기본 혼합 규칙]
+    '노랑,파랑': '초록',
+    '빨강,노랑': '주황',
+    '빨강,파랑': '보라',
+    '남색,자주': '보라',
+
+    // [보색 혼합 규칙 - 회색/갈색 만들기]
+    '빨강,초록': '갈색', // 어두운 회색 대신 갈색이 더 직관적일 수 있습니다.
+    '노랑,보라': '회색',
+    '주황,파랑': '회색',
+
+    // [기타 혼합 규칙]
+    '주황,초록': '황토',
+    '연두,주황': '황토',
+};
+
+  
+ let selected10Colors = [];
     let t3SelectedAmounts = {};
     let activeBrushColor = "#FFFFFF";
 
@@ -540,8 +561,18 @@
             `;
         });
 
-        const mixedHex = mixHexColors(quizColors);
-        const correctName = getClosestColorName(mixedHex);
+       const mixedHex = mixHexColors(quizColors);
+let correctName;
+
+// 1. 우리가 정의한 규칙(mixRules)에 정답이 있는지 확인합니다.
+const ruleKey = quizColors.map(c => c.name).sort().join(',');
+if (mixRules[ruleKey]) {
+    correctName = mixRules[ruleKey]; // 규칙에 있다면, 그 결과를 정답으로 사용!
+} else {
+    // 2. 규칙에 없는 조합이면, 기존 방식(가장 가까운 색)으로 계산합니다.
+    correctName = getClosestColorName(mixedHex);
+}
+
 
         let options = [{ name: correctName, hex: mixedHex }];
         while (options.length < 5) {
