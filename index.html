@@ -604,53 +604,86 @@ if (mixRules[ruleKey]) {
     }
 
     function setupType2Game() {
-        const shuffled = [...selected10Colors].sort(() => Math.random() - 0.5);
-        const baseColor = shuffled[0];
-        const hiddenColor = shuffled[1];
-
-        const mixedHex = mixHexColors([baseColor, hiddenColor]);
-        const resultName = getClosestColorName(mixedHex);
-
-        document.getElementById('t2-base').innerHTML = `
-            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-150 mb-2 shadow-sm" style="background:${baseColor.hex}"></div>
-            <div class="text-xs sm:text-sm font-black text-slate-700">${baseColor.name}</div>
-        `;
-        document.getElementById('t2-result').innerHTML = `
-            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-150 mb-2 shadow-sm" style="background:${mixedHex}"></div>
-            <div class="text-xs sm:text-sm font-black text-slate-700">${resultName}</div>
-        `;
-
-        const optionsContainer = document.getElementById('t2-options');
-        optionsContainer.innerHTML = '';
-
-        let options = [hiddenColor];
-        while (options.length < 5) {
-            let randomColor = selected10Colors[Math.floor(Math.random() * selected10Colors.length)];
-            if (!options.some(o => o.name === randomColor.name)) {
-                options.push(randomColor);
-            }
-        }
-        options.sort(() => Math.random() - 0.5);
-
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            // 패딩 및 자식 폰트 크기 업스케일링
-            btn.className = 'bg-white hover:bg-slate-50 border-2 border-slate-200 active:border-slate-300 py-4.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-3 transition shadow-sm';
-            btn.innerHTML = `
-                <div class="w-10 h-10 rounded-full border border-slate-100 shadow-sm" style="background:${opt.hex}"></div>
-                <div class="text-xs sm:text-sm font-black text-slate-800">${opt.name}</div>
-            `;
-            btn.onclick = () => {
-                if (opt.name === hiddenColor.name) {
-                    showToast("훌륭합니다! 숨은 색상을 찾아냈습니다 👏", true);
-                    setTimeout(setupType2Game, 1000);
-                } else {
-                    showToast("아쉽네요, 다시 한번 섞을 성분을 선택해 보세요!", false);
-                }
-            };
-            optionsContainer.appendChild(btn);
-        });
+    // 1. 우리가 정의한 정답 규칙(mixRules)의 목록을 가져옵니다.
+    const ruleKeys = Object.keys(mixRules);
+    if (ruleKeys.length === 0) {
+        // 표시할 규칙이 없으면 함수를 종료합니다.
+        document.getElementById('t2-options').innerHTML = '<p class="text-center col-span-full">정의된 혼합 규칙이 없습니다.</p>';
+        return;
     }
+
+    // 2. 규칙 중 하나를 무작위로 선택합니다. (예: '남색,자주')
+    const randomRuleKey = ruleKeys[Math.floor(Math.random() * ruleKeys.length)];
+    const ingredientNames = randomRuleKey.split(','); // ['남색', '자주']
+    const resultName = mixRules[randomRuleKey]; // '보라'
+
+    // 3. 이름에 해당하는 실제 색상 정보(hex 코드 포함)를 가져옵니다.
+    const ingredient1 = selected10Colors.find(c => c.name === ingredientNames[0]);
+    const ingredient2 = selected10Colors.find(c => c.name === ingredientNames[1]);
+    const resultColor = selected10Colors.find(c => c.name === resultName) || poolColors.find(c => c.name === resultName);
+
+    // 두 재료를 찾지 못하면 퀴즈를 만들지 않습니다.
+    if (!ingredient1 || !ingredient2 || !resultColor) {
+        console.error("규칙에 맞는 색상을 찾을 수 없습니다:", randomRuleKey);
+        // 이런 경우를 대비해, 다시 한번 게임 설정을 시도합니다.
+        if (ruleKeys.length > 1) { // 무한 루프 방지
+             setupType2Game();
+        }
+        return;
+    }
+
+    // 4. 두 재료 중 어떤 것을 '기본'과 '비밀' 색으로 할지 무작위로 정합니다.
+    let baseColor, hiddenColor;
+    if (Math.random() > 0.5) {
+        baseColor = ingredient1;
+        hiddenColor = ingredient2;
+    } else {
+        baseColor = ingredient2;
+        hiddenColor = ingredient1;
+    }
+
+    // 5. 화면에 퀴즈를 표시합니다. 이제 결과물의 색과 이름은 항상 정확히 일치합니다.
+    document.getElementById('t2-base').innerHTML = `
+        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-150 mb-2 shadow-sm" style="background:${baseColor.hex}"></div>
+        <div class="text-xs sm:text-sm font-black text-slate-700">${baseColor.name}</div>
+    `;
+    document.getElementById('t2-result').innerHTML = `
+        <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full border border-slate-150 mb-2 shadow-sm" style="background:${resultColor.hex}"></div>
+        <div class="text-xs sm:text-sm font-black text-slate-700">${resultColor.name}</div>
+    `;
+
+    // 6. 정답을 포함한 보기 버튼들을 만듭니다.
+    const optionsContainer = document.getElementById('t2-options');
+    optionsContainer.innerHTML = '';
+
+    let options = [hiddenColor];
+    // 오답 보기를 추가합니다. (정답 및 기본 재료와 겹치지 않게)
+    while (options.length < 5) {
+        let randomColor = selected10Colors[Math.floor(Math.random() * selected10Colors.length)];
+        if (randomColor.name !== baseColor.name && !options.some(o => o.name === randomColor.name)) {
+            options.push(randomColor);
+        }
+    }
+    options.sort(() => Math.random() - 0.5); // 보기 순서를 섞습니다.
+
+    options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'bg-white hover:bg-slate-50 border-2 border-slate-200 active:border-slate-300 py-4.5 px-2 rounded-2xl flex flex-col items-center justify-center gap-3 transition shadow-sm';
+        btn.innerHTML = `
+            <div class="w-10 h-10 rounded-full border border-slate-100 shadow-sm" style="background:${opt.hex}"></div>
+            <div class="text-xs sm:text-sm font-black text-slate-800">${opt.name}</div>
+        `;
+        btn.onclick = () => {
+            if (opt.name === hiddenColor.name) {
+                showToast("훌륭합니다! 숨은 색상을 찾아냈습니다 👏", true);
+                setTimeout(setupType2Game, 1000);
+            } else {
+                showToast("아쉽네요, 다시 한번 섞을 성분을 선택해 보세요!", false);
+            }
+        };
+        optionsContainer.appendChild(btn);
+    });
+}
 
     function setupType3Game() {
         const palette = document.getElementById('t3-palette');
